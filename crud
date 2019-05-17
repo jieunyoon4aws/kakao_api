@@ -1,0 +1,33 @@
+import pymysql
+
+
+def data_insert(gender, age, url):
+    
+    conn = pymysql.connect(host = 'localhost', port = 3366, user = 'root', password = '1234', db = 'recommendation')
+    cur = conn.cursor()
+    
+    sql = "insert into image (gender, age, image) values('%s', '%d', '%s')" % (gender, age, url)
+    
+    cur.execute(sql)
+    conn.commit()
+    conn.close()
+
+    
+def data_read(age):
+    
+    conn = pymysql.connect(host = 'localhost', port = 3366, user = 'root', password = '1234', db = 'recommendation')
+    cur = conn.cursor()
+    
+    age1 = int(age/10)*10
+    age2 = int(age/10)*10 + 10
+    sql = "select age, image,gender from image where age between %d and %d" % (age1, age2)
+    
+    cur.execute(sql)
+    record = cur.fetchall()
+    conn.close()
+
+    return record
+    
+
+if __name__ == '__main__':
+    data_read()
