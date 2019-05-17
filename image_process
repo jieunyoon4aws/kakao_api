@@ -1,0 +1,95 @@
+import sys
+import argparse
+import requests
+from PIL import Image
+from io import BytesIO
+from crud import *
+
+API_URL = "https://kapi.kakao.com/v1/vision/face/detect"
+MYAPP_KEY = "61d0deabd4b4f72afd2581023a0fcfd9"
+
+def detect_face(image_url): # 이미지 분석 함수
+    headers = {'Authorization':'KakaoAK {}'.format(MYAPP_KEY)}
+    data = {'image_url' : image_url}
+    # 접속
+    try:
+        resp = requests.post(API_URL, headers= headers, data=data)
+        resp.raise_for_status()
+        # 결과를 json 파일 형식으로 받아옴
+        return resp.json()
+
+    except Exception as e:
+        print(str(e))
+        sys.exit(0) # 프로그램 종료
+
+# 이미지 주소 파싱 함수
+def image_process(image_url):
+# 카카오에 접속해 얼굴에 대한 정보 받아옴
+    parser = argparse.ArgumentParser(description='.')
+    parser.add_argument('image_url', type=str, nargs='?', default= image_url, help='image file to detect face') # query string
+    args = parser.parse_args()
+
+        
+    detection_result = detect_face(args.image_url)
+    face_info = detection_result['result']['faces'][0]['facial_attributes']
+     
+    gender = face_info['gender'] # 사진의 gender 정보 추출
+    if gender['male'] > gender['female']:
+        gender = 'male'
+    elif gender['male'] <= gender['female']:
+        gender = 'female'
+    else:
+        gender = "unkwown"
+    
+    age = int(face_info['age']) # 사진의 나이 정보 추출해 정수로 변환
+
+    print(gender, "나이: ", age)
+    return gender, age, image_url
+
+# image_process에서 추출한 성별, 나이, url 정보 데이터베이스에 넣는 함수
+def data_input(image_url):
+    person_info = image_process(image_url)
+    data_insert(person_info[0], person_info[1], person_info[2])
+
+
+# 로컬 컴퓨터에서 개인 사진 업로드했을 때 정보 추출할 함수
+def detect_your_face(filename):
+    headers = {'Authorization':'KakaoAK {}'.format(MYAPP_KEY)}
+    # 접속
+    try:
+        files = {'file' : open(filename, 'rb')}
+        resp = requests.post(API_URL, headers= headers, files=files)
+        resp.raise_for_status()
+        # 결과를 json으로 받아옴
+        return resp.json()
+
+    # 접속 상태 확인
+    except Exception as e:
+        print(str(e))
+        sys.exit(0) # 프로그램 종료
+
+def your_image_process(filename):
+    # 카카오에 접속해 얼굴에 대한 정보 받아옴
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('image_file', type=str, nargs='?', default = filename, help='help...') # query string
+    args = parser.parse_args()
+    detection_result = detect_your_face(args.image_file)
+  
+    your_face_info = detection_result['result']['faces'][0]['facial_attributes']
+     
+    gender = your_face_info['gender'] # 사진의 gender 정보 추출
+    if gender['male'] > gender['female']:
+        gender = 'male'
+    elif gender['male'] <= gender['female']:
+        gender = 'female'
+    else:
+        gender = "unkwown"
+     
+    age = int(your_face_info['age']) # 사진의 나이 정보 추출해 정수로 변환
+
+    return gender, age
+
+    
+if __name__ == '__main__':
+    image = 'https://file.mk.co.kr/meet/neds/2017/11/image_readtop_2017_756124_15107007163100279.jpg'
+    data_input(image)
